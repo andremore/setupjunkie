@@ -22,7 +22,9 @@ func processSelectedChoices(m model, ch []Choice) (string, error) {
 			continue
 		}
 
-		output, err := ch[index].Action(m)
+		output, err := ch[index].Action(m, func(progress float64) {
+			ch[index].CurrentProgress = progress
+		})
 		if err != nil {
 			return "", err
 		}

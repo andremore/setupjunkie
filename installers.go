@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func isCommandAvailable(name string) bool {
@@ -32,47 +33,91 @@ func ensureGitAndCurlInstalled() error {
 	return nil
 }
 
-func installZshAndOhMyZsh(m model) (string, error) {
-	// Install Zsh
+type InstallationStep struct {
+	Description string
+	Action      func() error
+	Progress    float64
+}
+
+func installZshAndOhMyZsh(m model, reportProgress func(float64)) (string, error) {
+	steps := []InstallationStep{
+		{"Installing Zsh", installZsh, 20},
+		{"Installing Oh My Zsh", installOhMyZsh, 40},
+		{"Cloning setupjunkie-dotfiles", cloneSetupJunkieDotfiles, 60},
+		{"Overwriting .zshrc", overwriteZshrc, 80},
+		{"Installing Zsh plugins", func() error {
+			return installZshPlugins("zsh-users/zsh-autosuggestions", "zsh-users/zsh-syntax-highlighting")
+		}, 100},
+	}
+
+	progressChan := make(chan float64)
+	errorChan := make(chan error)
+
+	go func() {
+		for _, step := range steps {
+			err := step.Action()
+			if err != nil {
+				errorChan <- err
+				return
+			}
+			progressChan <- step.Progress
+		}
+		close(progressChan)
+	}()
+
+	for progress := range progressChan {
+		reportProgress(progress)
+	}
+
+	select {
+	case err := <-errorChan:
+		return "", err
+	default:
+		return "Zsh, Oh My Zsh, and .zshrc setup completed.", nil
+	}
+}
+
+func installZsh() error {
 	cmd := exec.Command("sudo", "apt-get", "install", "-y", "zsh")
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("failed to install zsh: %w", err)
-	}
+	return cmd.Run()
+}
 
-	// Install Oh My Zsh without changing the shell immediately
-	cmd = exec.Command("sh", "-c", `RUNZSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"`)
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("failed to install Oh My Zsh: %w", err)
-	}
+func installOhMyZsh() error {
+	cmd := exec.Command("sh", "-c", `RUNZSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"`)
+	return cmd.Run()
+}
 
-	// Clone the setupjunkie-dotfiles repo
+func cloneSetupJunkieDotfiles() error {
 	tmpDir := "/tmp/setupjunkie-dotfiles"
-	cmd = exec.Command("git", "clone", "https://github.com/andremore/setupjunkie-dotfiles.git", tmpDir)
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("failed to clone setupjunkie-dotfiles: %w", err)
+	cmd := exec.Command("git", "clone", "https://github.com/andremore/setupjunkie-dotfiles.git", tmpDir)
+	return cmd.Run()
+}
+
+func overwriteZshrc() error {
+	tmpDir := "/tmp/setupjunkie-dotfiles"
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user's home directory: %w", err)
+	}
+	cmd := exec.Command("sudo", "cp", tmpDir+"/.zshrc", homeDir+"/.zshrc")
+	return cmd.Run()
+}
+
+func installZshPlugins(plugins ...string) error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user's home directory: %w", err)
 	}
 
-    // Overwrite the .zshrc file
-    homeDir, err := os.UserHomeDir()
-    if err != nil {
-        return "", fmt.Errorf("failed to get user's home directory: %w", err)
-    }
-    cmd = exec.Command("sudo", "cp", tmpDir+"/.zshrc", homeDir+"/.zshrc")
-    if err := cmd.Run(); err != nil {
-        return "", fmt.Errorf("failed to overwrite .zshrc: %w", err)
-    }
+	for _, plugin := range plugins {
+		url := fmt.Sprintf("https://github.com/%s.git", plugin)
+		destination := fmt.Sprintf("%s/.oh-my-zsh/custom/plugins/%s", homeDir, strings.Split(plugin, "/")[1])
 
-	// Install zsh-autosuggestions
-    cmd = exec.Command("git", "clone", "https://github.com/zsh-users/zsh-autosuggestions", fmt.Sprintf("%s/.oh-my-zsh/custom/plugins/zsh-autosuggestions", homeDir))
-    if err := cmd.Run(); err != nil {
-        return "", fmt.Errorf("failed to install zsh-autosuggestions: %w", err)
-    }
+		cmd := exec.Command("git", "clone", url, destination)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to install plugin %s: %w", plugin, err)
+		}
+	}
 
-    // Install zsh-syntax-highlighting
-    cmd = exec.Command("git", "clone", "https://github.com/zsh-users/zsh-syntax-highlighting.git", fmt.Sprintf("%s/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting", homeDir))
-    if err := cmd.Run(); err != nil {
-        return "", fmt.Errorf("failed to install zsh-syntax-highlighting: %w", err)
-    }
-
-	return "Zsh, Oh My Zsh, and .zshrc setup completed.", nil
+	return nil
 }

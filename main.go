@@ -18,7 +18,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			if !m.submitted {
 				for index := range m.selected {
-					output, err := choices[index].Action(m)
+					output, err := choices[index].Action(m, func(progress float64) {
+						choices[index].CurrentProgress = progress
+					})
 					if err != nil {
 						fmt.Println("Error:", err)
 						return m, tea.Quit
@@ -61,11 +63,19 @@ func (m model) View() string {
 		if m.cursor == i {
 			cursor = ">"
 		}
+
 		checked := " "
 		if _, ok := m.selected[i]; ok {
 			checked = "x"
 		}
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Name)
+
+		s += fmt.Sprintf("%s [%s] %s", cursor, checked, choice.Name)
+		if choice.CurrentProgress > 0 {
+			progress := progressBar(choice.CurrentProgress, 20)
+			s += fmt.Sprintf(" %s", progress)
+		}
+
+		s += "\n"
 	}
 	s += "\nPress q to quit. Press s to submit.\n"
 
