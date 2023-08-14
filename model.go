@@ -1,6 +1,6 @@
 package main
 
-import "fmt"
+import "strings"
 
 type model struct {
 	cursor    int
@@ -15,6 +15,8 @@ func initialModel() model {
 }
 
 func processSelectedChoices(m model, ch []Choice) (string, error) {
+	messages := []string{}
+
 	for index := range m.selected {
 		if ch[index].Name == "Submit" {
 			continue
@@ -24,9 +26,14 @@ func processSelectedChoices(m model, ch []Choice) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		fmt.Println(output)
+
+		messages = append(messages, output)
+		if ch[index].PostMessage != "" {
+			messages = append(messages, ch[index].PostMessage)
+		}
 	}
-	return "All actions executed successfully.", nil
+
+	return strings.Join(messages, "\n"), nil
 }
 
 func submitSelectedChoices(m model) (string, error) {
