@@ -1,29 +1,48 @@
 package main
 
 import (
-	"bytes"
+	"fmt"
 	"os/exec"
 )
 
-// func installZshAndOhMyZsh() error {
-// // Install Zsh
-// // cmd := exec.Command("sh", "-c", "sudo apt-get install zsh")
-// cmd := exec.Command("sh", "-c", "zsh --version")
-// if err := cmd.Run(); err != nil {
-// return err
-// }
+func isCommandAvailable(name string) bool {
+	cmd := exec.Command("command", "-v", name)
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
+}
 
-// // Install Oh My Zsh
-// // cmd = exec.Command("sh", "-c", "sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\"")
-// return cmd.Run()
-// }
+func ensureGitAndCurlInstalled() error {
+	if !isCommandAvailable("git") {
+		cmd := exec.Command("sudo", "apt-get", "install", "-y", "git")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to install git: %w", err)
+		}
+	}
 
-// ...
+	if !isCommandAvailable("curl") {
+		cmd := exec.Command("sudo", "apt-get", "install", "-y", "curl")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to install curl: %w", err)
+		}
+	}
+
+	return nil
+}
 
 func installZshAndOhMyZsh(m model) (string, error) {
-	cmd := exec.Command("sh", "-c", "zsh --version")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	return out.String(), err
+	// Install Zsh
+	cmd := exec.Command("sudo", "apt-get", "install", "-y", "zsh")
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to install zsh: %w", err)
+	}
+
+	// Install Oh My Zsh without changing the shell immediately
+	cmd = exec.Command("sh", "-c", `RUNZSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"`)
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to install Oh My Zsh: %w", err)
+	}
+
+	return "Zsh and Oh My Zsh installed successfully.", nil
 }
