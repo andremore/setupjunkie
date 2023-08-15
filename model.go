@@ -1,44 +1,50 @@
 package main
 
-import "strings"
+import (
+	"fmt"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
 
 type model struct {
-	cursor    int
-	selected  map[int]struct{}
-	submitted bool
+	Cursor       int
+	Selected     map[int]struct{}
+	Submitted    bool
+	InstallQueue []int
+	IsInstalling bool
 }
 
 func initialModel() model {
 	return model{
-		selected: make(map[int]struct{}),
+		Selected: make(map[int]struct{}),
 	}
 }
 
-func processSelectedChoices(m model, ch []Choice) (string, error) {
-	messages := []string{}
+func (m *model) startInstalling(ch []Choice) tea.Cmd {
+	if len(m.InstallQueue) == 0 {
+		m.IsInstalling = false
+		return tea.Quit
+	}
 
-	for index := range m.selected {
-		if ch[index].Name == "Submit" {
-			continue
-		}
+	choiceIndex := m.InstallQueue[0]
+	m.IsInstalling = true
+	choice := ch[choiceIndex]
 
-		output, err := ch[index].Action(m, func(progress float64) {
-			ch[index].CurrentProgress = progress
-		})
+	return func() tea.Msg {
+		output, err := choice.Action(*m)
 		if err != nil {
-			return "", err
+			return err
 		}
 
-		messages = append(messages, output)
-		if ch[index].PostMessage != "" {
-			messages = append(messages, ch[index].PostMessage)
+		if choice.PostMessage != "" {
+			fmt.Println(choice.PostMessage)
 		}
+
+		m.InstallQueue = m.InstallQueue[1:]
+		if len(m.InstallQueue) > 0 {
+			return m.startInstalling(ch)
+		}
+
+		return output
 	}
-
-	return strings.Join(messages, "\n"), nil
-}
-
-func submitSelectedChoices(m model) (string, error) {
-	m.submitted = true
-	return processSelectedChoices(m, choices)
 }

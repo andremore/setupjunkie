@@ -1,12 +1,16 @@
 package main
 
-import (
-	"fmt"
-	"strings"
-)
 
-func progressBar(percentage float64, width int) string {
-	done := int(percentage * float64(width) / 100)
-	pending := width - done
-	return fmt.Sprintf("[%s%s]", strings.Repeat("=", done), strings.Repeat(" ", pending))
+func moveCursorUp(m model) model {
+	if m.Cursor > 0 {
+		m.Cursor--
+	}
+	return m
+}
+
+func moveCursorDown(m model) model {
+	if m.Cursor < len(choices)-1 {
+		m.Cursor++
+	}
+	return m
 }

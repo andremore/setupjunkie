@@ -16,66 +16,47 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
-			if !m.submitted {
-				for index := range m.selected {
-					output, err := choices[index].Action(m, func(progress float64) {
-						choices[index].CurrentProgress = progress
-					})
-					if err != nil {
-						fmt.Println("Error:", err)
-						return m, tea.Quit
-					}
-					fmt.Println(output)
-				}
-			}
-			return m, tea.Quit
+			return handleQuit(m)
 		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
+			return moveCursorUp(m), nil
 		case "down", "j":
-			if m.cursor < len(choices)-1 {
-				m.cursor++
-			}
+			return moveCursorDown(m), nil
 		case "enter", " ":
-			if _, ok := m.selected[m.cursor]; !ok {
-				m.selected[m.cursor] = struct{}{}
-			} else {
-				delete(m.selected, m.cursor)
-			}
+			return toggleChoice(m), nil
 		case "s":
-			output, err := submitSelectedChoices(m)
-			if err != nil {
-				fmt.Println("Error:", err)
+			if !m.Submitted {
+				return handleSubmit(m)
 			}
-			fmt.Println(output)
-			return m, tea.Quit
 		}
+	case string:
+		fmt.Println(msg)
+		return m, tea.Quit
+	case error:
+		fmt.Println("Error:", msg)
+		return m, tea.Quit
 	}
 
 	return m, nil
 }
 
 func (m model) View() string {
+	if m.Submitted {
+		return "Setting up your system..." 
+	}
+
 	s := "What do you want to set up?\n\n"
 	for i, choice := range choices {
 		cursor := " "
-		if m.cursor == i {
+		if m.Cursor == i {
 			cursor = ">"
 		}
 
 		checked := " "
-		if _, ok := m.selected[i]; ok {
+		if _, ok := m.Selected[i]; ok {
 			checked = "x"
 		}
 
-		s += fmt.Sprintf("%s [%s] %s", cursor, checked, choice.Name)
-		if choice.CurrentProgress > 0 {
-			progress := progressBar(choice.CurrentProgress, 20)
-			s += fmt.Sprintf(" %s", progress)
-		}
-
-		s += "\n"
+		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Name)
 	}
 	s += "\nPress q to quit. Press s to submit.\n"
 
