@@ -27,8 +27,8 @@ func (m *model) startInstalling(ch []Choice) tea.Cmd {
 	}
 
 	choiceIndex := m.InstallQueue[0]
-	m.IsInstalling = true
 	choice := ch[choiceIndex]
+	m.IsInstalling = true
 
 	return func() tea.Msg {
 		output, err := choice.Action(*m)

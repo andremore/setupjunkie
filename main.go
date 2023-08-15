@@ -42,34 +42,44 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	var s string
-	
+
 	if m.Submitted {
 		s = installationView(m)
 	} else {
-		s = choicesView(m)	
+		 s = choicesView(m)
 	}
 
-	s += "\nPress q to quit. Press s to submit.\n"
-	
 	return indent.String("\n"+s+"\n\n", 2)
 }
 
 func choicesView(m model) string {
-	s := "What do you want to install?\n\n"
-	
+	s := keyword("What do you want to install?\n\n")
+
 	for i, choice := range choices {
-		cursor := " "
+		cursorChar := " "
 		if m.Cursor == i {
-			cursor = ">"
+			cursorChar = "×"
 		}
 
-		checked := " "
+		checkedChar := " "
 		if _, ok := m.Selected[i]; ok {
-			checked = "x"
+			checkedChar = "×"
 		}
 
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Name)
+		bracketed := ""
+		if cursorChar == "×" {
+			bracketed = "[×]"
+		} else if checkedChar == "×" {
+			bracketed = "[× "
+		} else {
+			bracketed = "[ ]"
+		}
+
+		coloredBracketed := dot + colorFg(bracketed+" ", "#0096FF")
+		s += fmt.Sprintf("%s%s\n\n", coloredBracketed, choice.Name)
 	}
+
+	s += subtle("s: submit") + dot + subtle("j/k, up/down: select") + dot + subtle("enter: choose") + dot + subtle("q, esc: quit")
 
 	return s
 }
