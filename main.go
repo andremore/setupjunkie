@@ -56,27 +56,30 @@ func choicesView(m model) string {
 	s := keyword("What do you want to install?\n\n")
 
 	for i, choice := range choices {
+		name := choice.Name
 		cursorChar := " "
-		if m.Cursor == i {
+		checkedChar := " "
+		isCursorOnChoice := m.Cursor == i
+		_, choiceSelected := m.Selected[i]
+
+		if isCursorOnChoice {
 			cursorChar = "×"
 		}
 
-		checkedChar := " "
-		if _, ok := m.Selected[i]; ok {
+		if choiceSelected {
 			checkedChar = "×"
+			name = colorFg(name, "#0096FF")
 		}
 
-		bracketed := ""
-		if cursorChar == "×" {
-			bracketed = "[×]"
-		} else if checkedChar == "×" {
-			bracketed = "[× "
-		} else {
-			bracketed = "[ ]"
+		bracketed := "[ ] "
+
+		if cursorChar == "×" && choiceSelected {
+			bracketed = colorFg("[×]", "#FF8000") + " "
+		} else if cursorChar == "×" || checkedChar == "×" {
+			bracketed = colorFg("[×]", "#0096FF") + " "
 		}
 
-		coloredBracketed := dot + colorFg(bracketed+" ", "#0096FF")
-		s += fmt.Sprintf("%s%s\n\n", coloredBracketed, choice.Name)
+		s += fmt.Sprintf("%s%s\n\n", bracketed, name)
 	}
 
 	s += subtle("s: submit") + dot + subtle("j/k, up/down: select") + dot + subtle("enter: choose") + dot + subtle("q, esc: quit")
