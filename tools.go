@@ -10,10 +10,10 @@ import (
 
 // 5800FF 0096FF 00D7FF 72FFFF
 var (
-	term          = termenv.EnvColorProfile()
-	keyword       = makeFgStyle("#00D7FF")
-	subtle        = makeFgStyle("241")
-	dot           = colorFg(" • ", "236")
+	term    = termenv.EnvColorProfile()
+	keyword = makeFgStyle("#00D7FF")
+	subtle  = makeFgStyle("241")
+	dot     = colorFg(" • ", "236")
 )
 
 func colorFg(val, color string) string {

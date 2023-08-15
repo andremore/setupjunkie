@@ -46,7 +46,7 @@ func (m model) View() string {
 	if m.Submitted {
 		s = installationView(m)
 	} else {
-		 s = choicesView(m)
+		s = choicesView(m)
 	}
 
 	return indent.String("\n"+s+"\n\n", 2)
