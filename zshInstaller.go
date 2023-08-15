@@ -17,7 +17,7 @@ func (z ZshInstaller) Install() (string, error) {
 			return "", err
 		}
 	}
-	return "Zsh, Oh My Zsh, and .zshrc setup completed.", nil
+	return "\n", nil
 }
 
 func (z ZshInstaller) InstallSteps() []InstallationStep {

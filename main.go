@@ -5,6 +5,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/muesli/reflow/indent"
 )
 
 func (m model) Init() tea.Cmd {
@@ -40,11 +41,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+	var s string
+	
 	if m.Submitted {
-		return "Setting up your system..." 
+		s = installationView(m)
+	} else {
+		s = choicesView(m)	
 	}
 
-	s := "What do you want to set up?\n\n"
+	s += "\nPress q to quit. Press s to submit.\n"
+	
+	return indent.String("\n"+s+"\n\n", 2)
+}
+
+func choicesView(m model) string {
+	s := "What do you want to install?\n\n"
+	
 	for i, choice := range choices {
 		cursor := " "
 		if m.Cursor == i {
@@ -58,9 +70,15 @@ func (m model) View() string {
 
 		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Name)
 	}
-	s += "\nPress q to quit. Press s to submit.\n"
 
 	return s
+}
+
+func installationView(m model) string {
+	msg := "Setting up your system..."
+	label := "Downloading:"
+
+	return msg + "\n\n" + label
 }
 
 func main() {
